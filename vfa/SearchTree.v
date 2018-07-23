@@ -278,7 +278,8 @@ Definition example_tree (v2 v4 v5 : V) :=
   [t_update] and [(t_empty default)]. *)
 
 Definition example_map (v2 v4 v5: V) : total_map V
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+(* REPLACE THIS LINE WITH ":= _your_definition_ ." *).
+Admitted.
 (** [] *)
 
 (** To build the [Abs] relation, we'll use these two auxiliary
@@ -411,6 +412,7 @@ pose (m' := t_update
            (t_empty default)) 2 v).
 assert (Paradox: list2map (elements bogus) = m /\ list2map (elements bogus) <> m).
 split.
+simpl. unfold m.
 (** To prove the first subgoal, prove that [m=m'] (by [extensionality]) and
       then use [H].
 
@@ -824,6 +826,7 @@ Theorem elements_relateX:
   list2map (elements t) = cts.
 Proof.
 intros.
+hnf in H0.  
 apply H0.
 Qed.
 

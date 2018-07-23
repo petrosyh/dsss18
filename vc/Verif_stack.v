@@ -168,7 +168,20 @@ Lemma listrep_local_prop: forall il p, listrep il p |--
         !! (is_pointer_or_null p  /\ (p=nullval <-> il=nil)).
 (** See if you can remember how to prove this; or look again
   at [Verif_reverse] to see how it's done. *)
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+  revert p. induction il; intros p.
+  - unfold listrep.
+    entailer!. split; auto.
+  - unfold listrep; fold listrep.
+    entailer.
+    entailer!.
+    split; intros.
+    + subst p.
+      eapply field_compatible_nullval; eauto.
+    + inv H3.
+Qed.
+    
 Hint Resolve listrep_local_prop : saturate_local.
 
 Lemma listrep_valid_pointer:
@@ -176,7 +189,24 @@ Lemma listrep_valid_pointer:
    listrep il p |-- valid_pointer p.
 (** See if you can remember how to prove this; or look again
   at [Verif_reverse] to see how it's done. *)
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+ (** The main point is to unfold listrep. *)
+ unfold listrep.
+ (** Now we can prove it by case analysis on sigma; we don't even need
+   induction. *)
+ destruct il; simpl.
+* (** The  nil case is easy: *)
+  hint.
+  entailer!.
+* (**  The cons case *)
+  (** To get past the EXistential, use either [Intros y] or, *)
+  entailer!.
+  (** Now this solves using the Hint database [valid_pointer], because the
+     [data_at Tsh t_list (v,y) p] on the left is enough to prove the goal. *)
+  auto with valid_pointer.
+Qed.
+
 Hint Resolve listrep_valid_pointer : valid_pointer.
 (** [] *)
 
@@ -206,13 +236,32 @@ Definition stack (il: list Z) (p: val) :=
 (** **** Exercise: 1 star (stack_properties)  *)
 
 Lemma stack_local_prop: forall il p, stack il p |--  !! (isptr p).
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. unfold isptr.
+  unfold stack. destruct p; entailer; entailer!.
+Qed.
+
 Hint Resolve stack_local_prop : saturate_local.
 
 Lemma stack_valid_pointer:
   forall il p,
    stack il p |-- valid_pointer p.
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+ unfold stack.
+ destruct il; simpl.
+* (** The  nil case is easy: *)
+  hint.
+  entailer!.
+  entailer.
+* (**  The cons case *)
+  (** To get past the EXistential, use either [Intros y] or, *)
+  entailer!.
+  (** Now this solves using the Hint database [valid_pointer], because the
+     [data_at Tsh t_list (v,y) p] on the left is enough to prove the goal. *)
+  auto with valid_pointer.
+Qed.
+
 Hint Resolve stack_valid_pointer : valid_pointer.
 (** [] *)
 
@@ -260,8 +309,24 @@ Definition Gprog : funspecs :=
 (** **** Exercise: 2 stars (body_pop)  *)
 Lemma body_pop: semax_body Vprog Gprog f_pop pop_spec.
 Proof.
-start_function.
-(* FILL IN HERE *) Admitted.
+  start_function.
+  
+  subst POSTCONDITION MORE_COMMANDS; unfold abbreviate.
+  abbreviate_semax.
+  Fail forward.
+  unfold stack.
+  unfold listrep; fold listrep.
+  Intros q.
+  Intros y.
+  forward.
+  forward.
+  forward.
+  forward.
+  forward_call ((Tstruct _cons noattr), q).
+  forward.
+  unfold stack. Exists y. entailer.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 2 stars (body_push)  *)
@@ -270,12 +335,56 @@ Proof.
 start_function.
 forward_call (Tstruct _cons noattr).
 simpl; split3; auto.
-(* FILL IN HERE *) Admitted.
-(** [] *)
+split. omega.
+assert (8 = Int.unsigned (Int.repr 8)). unfold Int.repr. unfold Int.unsigned. auto.
+rewrite H0. eapply Int.unsigned_range_2.
+Intros q.
+
+forward_if
+  (PROP ()
+   LOCAL (temp _q q; temp _p p; temp _i (Vint (Int.repr i)))
+   SEP (malloc_token Tsh (Tstruct _cons noattr) q * data_at_ Tsh (Tstruct _cons noattr) q;
+  stack il p)).
+
+* if_tac. subst q. entailer!. entailer!.
+* if_tac. forward_call tt. contradiction. contradiction.
+* if_tac. contradiction. Intros. forward. entailer. entailer!.
+* Intros.
+  forward. simpl.
+  unfold stack.
+  Intros q0.
+  forward.
+  forward.
+  forward.
+  forward.
+  unfold stack. Exists q.
+  cancel.
+  unfold listrep. fold listrep.
+  Exists q0.
+  entailer!.
+Qed.
 
 (** **** Exercise: 2 stars (body_newstack)  *)
 Lemma body_newstack: semax_body Vprog Gprog f_newstack newstack_spec.
 Proof.
-start_function.
-(* FILL IN HERE *) Admitted.
+  start_function.
+  forward_call (Tstruct _stack noattr).
+  simpl; split3; auto.
+  split. omega.
+  assert (4 = Int.unsigned (Int.repr 4)). unfold Int.repr. unfold Int.unsigned. auto.
+  rewrite H. eapply Int.unsigned_range_2.
+  Intros p.
+  forward_if
+    (PROP (p <> nullval)
+     LOCAL (temp _p p)
+     SEP (malloc_token Tsh (Tstruct _stack noattr) p * data_at_ Tsh (Tstruct _stack noattr) p)).
+* if_tac. subst p. entailer!. entailer!.
+* if_tac. forward_call tt. contradiction. contradiction.
+* if_tac. contradiction. Intros. forward. entailer. 
+* Intros. forward. forward.
+  Exists p. 
+  unfold stack. unfold listrep.
+  Exists nullval. entailer.
+Qed.
+
 (** [] *)

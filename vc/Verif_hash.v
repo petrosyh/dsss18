@@ -34,7 +34,7 @@ Definition strcpy_spec :=
  DECLARE _strcpy
   WITH dest : val, n : Z, src : val, s : string
   PRE [ 1 OF tptr tschar, 2 OF tptr tschar ]
-    PROP (Zlength s < n)
+    PROP (Zlength s < n) (* large enough area *)
     LOCAL (temp 1 dest; temp 2 src)
     SEP (data_at_ Tsh (tarray tschar n) dest; cstring Tsh s src)
   POST [ tptr tschar ]
@@ -102,8 +102,8 @@ Hint Resolve list_cell_valid_pointer: valid_pointer.
 Lemma listcell_fold: forall key kp count p' p,
   cstring Tsh key kp * data_at Tsh tcell (kp, (Vint (Int.repr count), p')) p * malloc_token Tsh tcell p 
          |-- list_cell key count p' p.
-Proof. 
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. unfold list_cell. Exists kp. entailer. Qed.
 (** [] *)
 
 Fixpoint listrep (sigma: list (string * Z)) (x: val) : mpred :=
@@ -117,14 +117,35 @@ Fixpoint listrep (sigma: list (string * Z)) (x: val) : mpred :=
 Lemma listrep_local_prop: forall sigma p, listrep sigma p |--
         !! (is_pointer_or_null p  /\ (p=nullval <-> sigma=nil)).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  revert p. induction sigma; intros p.
+  - unfold listrep.
+    entailer!. split; auto.
+  - simpl.
+    destruct a as [s c].
+    unfold listrep; fold listrep.
+    entailer.
+    entailer.
+    entailer!. split; intros.
+    + subst p. simpl in Pp. inv Pp.
+    + inv H0.
+Qed.
+
 Hint Resolve listrep_local_prop : saturate_local.
 
 Lemma listrep_valid_pointer:
   forall sigma p,
    listrep sigma p |-- valid_pointer p.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  unfold listrep.
+  destruct sigma; simpl.
+  - entailer!.
+  - destruct p0 as [s c].
+    entailer!.
+    auto with valid_pointer.
+Qed.
+
 Hint Resolve listrep_valid_pointer : valid_pointer.
 (** [] *)
 
@@ -148,12 +169,22 @@ Definition hashtable_rep (contents: hashtable_contents) (p: val) : mpred :=
 (** **** Exercise: 2 stars (hashtable_rep_hints)  *)
 Lemma hashtable_rep_local_facts: forall contents p,
  hashtable_rep contents p |-- !! (isptr p /\ Zlength contents = N).
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. unfold hashtable_rep. entailer.
+  autorewrite with sublist. entailer. entailer!.
+  simplify_value_fits in H1.
+  assert (Zlength (map snd bl) = Zlength bl) by apply initial_world.Zlength_map.
+  rewrite H2 in H1. inv H1. rewrite H3. auto.
+Qed.
+
 Hint Resolve hashtable_rep_local_facts : saturate_local.
 
 Lemma hashtable_rep_valid_pointer: forall contents p,
  hashtable_rep contents p |-- valid_pointer p.
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. unfold hashtable_rep. entailer.
+Qed.
+
 Hint Resolve hashtable_rep_valid_pointer : valid_pointer.
 (** [] *)
 
@@ -305,13 +336,90 @@ unfold cstring,hashfun in *.
   where X is a general formula of type [val].
  
   Late in the proof of the loop body, the lemma [hashfun_snoc] will be useful. *)
-(* FILL IN HERE *) Admitted.
+subst POSTCONDITION MORE_COMMANDS; unfold abbreviate.
+forward.
+forward.
+forward.
+entailer!.
+
+forward_while
+  (EX i: Z, EX n: Z,
+   PROP  (0 <= i <= Zlength contents; n = (hashfun_aux 0 (sublist 0 i contents)))
+   LOCAL (temp _i (Vint (Int.repr i));
+          temp _c (Vbyte (Znth i (contents ++ [Byte.zero])));
+          temp _n (Vint (Int.repr n));
+          temp _s s)
+   SEP   (data_at Tsh (tarray tschar (Zlength contents + 1)) (map Vbyte (contents ++ [Byte.zero])) s)).
+
+- entailer!.
+  Exists 0. Exists 0. entailer!.
+- entailer!.
+- forward.
+  forward.
+  assert_PROP (0 <= i + 1 < Zlength (contents ++ [Byte.zero])). {
+    autorewrite with norm.
+    autorewrite with sublist.
+    entailer!. cstring. }
+  forward.
+  + entailer!. cstring.
+  + autorewrite with norm.
+    autorewrite with sublist.
+    autorewrite with sublist in *|-.
+    hint.
+    Exists
+      (i + 1, (hashfun_aux 0 (sublist 0 (i + 1) contents))).
+    entailer!.
+    autorewrite with sublist.
+    autorewrite with sublist in *|-.
+    assert (Int.repr (hashfun_aux 0 (sublist 0 (i + 1) contents)) = Int.repr (hashfun_aux 0 (sublist 0 i contents) * 65599 + Byte.signed (Znth i contents))).
+    { apply hashfun_snoc; try omega. }
+    rewrite H1. auto.
+- forward.
+  autorewrite with sublist in *|-.
+  entailer!.
+  assert (i = Zlength contents) by (apply demonstrate_cstring2; auto).
+  assert (sublist 0 i contents = contents). apply sublist_same; omega.
+  rewrite H6. auto.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars (body_new_cell)  *)
 Lemma body_new_cell: semax_body Vprog Gprog f_new_cell new_cell_spec.
 Proof.
-(* FILL IN HERE *) Admitted.
+  start_function.
+  unfold cstring,hashfun in *.
+  subst POSTCONDITION MORE_COMMANDS; unfold abbreviate.
+  forward_call (Tstruct _cell noattr).
+  simpl; split3; auto.
+  split. omega.
+  assert (12 = Int.unsigned (Int.repr 12)). unfold Int.repr. unfold Int.unsigned. auto.
+  rewrite H. eapply Int.unsigned_range_2.
+  Intros p.
+
+  forward_if
+    (PROP ()
+     LOCAL (temp _p p; temp _key s; temp _count (Vint (Int.repr count)); temp _next next)
+     SEP (malloc_token Tsh (Tstruct _cell noattr) p * data_at_ Tsh (Tstruct _cell noattr) p;
+          data_at Tsh (tarray tschar (Zlength key + 1)) (map Vbyte (key ++ [Byte.zero])) s)).
+
+* if_tac. subst p. entailer!. entailer!.
+* if_tac. forward_call tt. contradiction. contradiction.
+* if_tac. contradiction. Intros. forward. entailer. entailer!.
+* Intros.
+  forward_call (s, key).
+  { entailer!. }
+  { Intros t'2.
+    forward.
+    forward.
+    forward.
+    forward.
+    Exists p.
+    unfold list_cell. fold list_cell.
+    entailer!. unfold tcell. Exists t'2. unfold cstring.
+    entailer!. }
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -323,8 +431,15 @@ Lemma iter_sepcon_listrep_local_facts:
  forall bl, iter_sepcon (uncurry listrep) bl
                     |-- !! Forall is_pointer_or_null (map snd bl).
 Proof.
+  induction bl. entailer!.
+  simpl. sep_apply IHbl.
+  autorewrite with norm.
+  entailer.
+  unfold uncurry. 
+  admit.
+Admitted.
+
 (* Hint: use [induction] and [sep_apply]. *)
-(* FILL IN HERE *) Admitted.
 
 Hint Resolve iter_sepcon_listrep_local_facts : saturate_local.
 (** [] *)
@@ -338,10 +453,17 @@ Lemma iter_sepcon_split3:
 Proof.
 intros.
 rewrite <- (sublist_same 0 (Zlength al) al) at 1 by auto.
-(* Hint: [rewrite (sublist_split LO MID HI) by omega], where you choose values for LO MID HI. 
-  Also useful:  [rewrite sublist_len_1]    and    [iter_sepcon_app].
-*)
-(* FILL IN HERE *) Admitted.
+rewrite (sublist_split 0 (i + 1) (Zlength al)) by omega.
+assert (sublist 0 (i + 1) al = (sublist 0 i al) ++ (sublist i (i + 1) (sublist 0 (i + 1) al))).
+{ rewrite (sublist_split 0 i (i + 1)) by omega. admit. (* true *) }
+rewrite H0.
+assert ((sublist i (i + 1) (sublist 0 (i + 1) al)) = [Znth i al]). admit. (* true *)
+rewrite H1.
+rewrite iter_sepcon_app with (p:=f).
+rewrite iter_sepcon_app with (p:=f).
+simpl. rewrite sepcon_emp. auto.
+Admitted.
+
 (** [] *)
 
 (** **** Exercise: 3 stars (body_new_table)  *)
@@ -355,7 +477,19 @@ Lemma body_new_table_helper:
 Proof.
 intros.
 unfold_data_at 1%nat.
-(* FILL IN HERE *) Admitted.
+(* iter_sepcon (uncurry listrep) (list_repeat (Z.to_nat N) ([], nullval)) = emp *)
+cancel.
+remember (list_repeat (Z.to_nat N) ([], nullval)) as l.
+assert (Forall (fun x :list (string * Z) * val => x = ([], nullval)) l).
+{ rewrite Heql. eapply Forall_list_repeat. auto. }
+clear Heql.
+induction l as [|hd tl].
+- simpl. auto.
+- simpl. inv H. eapply IHtl in H3.
+  unfold uncurry. simpl. entailer.
+Qed.
+
+Definition str_nil : list string := [].
 
 Lemma body_new_table: semax_body Vprog Gprog f_new_table new_table_spec.
 Proof.
@@ -375,7 +509,45 @@ Proof.
   In particular, you'll have to split up [list_repeat (Z.to_nat (i + 1)) nullval]
    into [list_repeat (Z.to_nat i) nullval ++ list_repeat (Z.to_nat 1) nullval].
   The best way to do that is [rewrite <- list_repeat_app'.]
-*)
+ *)
+  start_function.
+  unfold cstring,hashfun in *.
+  subst POSTCONDITION MORE_COMMANDS; unfold abbreviate.
+  forward_call (Tstruct _hashtable noattr).
+  simpl; split3; auto.
+  split. omega.
+  assert (436 = Int.unsigned (Int.repr 436)). unfold Int.repr. unfold Int.unsigned. auto.
+  rewrite H. eapply Int.unsigned_range_2.
+  Intros p.
+
+  forward_if
+    (PROP ()
+     LOCAL (temp _p p)
+     SEP (malloc_token Tsh (Tstruct _hashtable noattr) p * data_at_ Tsh (Tstruct _hashtable noattr) p)).
+* if_tac. subst p. entailer!. entailer!.
+* if_tac. forward_call tt. contradiction. contradiction.
+* if_tac. contradiction. Intros. forward. entailer.
+* Intros.
+  
+  forward_for_simple_bound 109
+    (EX i : Z, PROP ( ) LOCAL (temp _p p)
+     SEP (malloc_token Tsh (Tstruct _hashtable noattr) p;
+          @data_at CompSpecs Tsh thashtable (list_repeat (Z.to_nat i) nullval ++ list_repeat (Z.to_nat (N-i)) Vundef) p)).
+
+  ** entailer!.
+  ** Intros.
+     forward.
+     entailer.
+     autorewrite with sublist.
+     autorewrite with sublist in *|-.
+     entailer!. hint.
+     simplify_value_fits in H2. unfold upd_Znth. simpl.
+     rewrite semax_lemmas.cons_app. admit. (* true but some arith needed *)
+  ** forward.
+     Exists p.
+     entailer.
+     unfold hashtable_rep.
+     admit.
 (* FILL IN HERE *) Admitted.
 (** [] *)
 
@@ -401,13 +573,38 @@ Lemma listrep_traverse:  (* useful in body_get lemma*)
 Proof.
 intros.
 apply allp_right; intro al.
-(* FILL IN HERE *) Admitted.
+entailer!.
+rewrite <- wand_sepcon_adjoint. Exists p'. entailer!.
+Qed.
 
 Lemma body_get: semax_body Vprog Gprog f_get get_spec.
 Proof.
 start_function.
 rename p into table.
 pose proof (hashfun_inrange sigma).
+forward_call (s, Tsh, sigma).
+forward.
+autorewrite with norm.
+unfold hashtable_rep.
+Intros bl.
+forward.
+* entailer!.
+  split. admit. (* trivial *)
+  admit. (* trivial *)
+* entailer!.
+  apply Forall_Znth with (i:= (hashfun sigma mod 109)) in H4. auto.
+  autorewrite with sublist.
+  (* Zlength bl = 109 *) admit.
+* forward_while
+    (EX p : val,
+     PROP (p <> nullval  )
+     LOCAL (temp _p p)
+     SEP ( )).
+  ** entailer!. Exists (Znth (hashfun sigma mod 109) (map snd bl)).
+     entailer!.
+
+  eapply Nat.mod_upper_bound.
+  
 (* FILL IN HERE *) Admitted.
 (** [] *)
 

@@ -565,7 +565,8 @@ assert_PROP (Zlength contents = size). {
    of list operators: [Zlength, map, sublist,] etc.
 
    Or, we can solve the goal "by hand": *)
-  do 2 rewrite Zlength_map. reflexivity.
+  list_solve.
+  (* do 2 rewrite Zlength_map. reflexivity. *)
 }
 (** Now that we have [Zlength contents = size] above the, we can go
    [forward] through the array-subscript statement. *)
@@ -582,6 +583,7 @@ forward. (* i++; *)
    postcondition of the loop body) entails the loop invariant. *)
  Exists (i+1).
  entailer!.
+ hint.
  f_equal. f_equal.
 
 (** Here the proof goal is,

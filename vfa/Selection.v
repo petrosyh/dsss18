@@ -33,7 +33,7 @@ match l with
 |  nil => (x, nil)
 |  h::t => if x <=? h
                then let (j, l') := select x t in (j, h::l')
-               else let (j,l') := select h t in (j, x::l')
+               else let (j, l') := select h t in (j, x::l')
 end.
 
 (** Now, selection-sort works by repeatedly extracting the smallest element,
@@ -154,19 +154,43 @@ Lemma select_smallest_aux:
     select x al = (y,bl) ->
     y <= x.
 Proof.
+  intros.
+  assert (Forall (fun z => y <= z) (y::bl)) by auto.
+  assert (H2 := select_perm x al).
+  rewrite H0 in H2.
+  apply Permutation_sym in H2.
+  assert (H3 := @Forall_perm _ _ _ _ H2 H1).
+  inv H3. auto.
+Qed.
+
 (* Hint: no induction needed in this lemma.
    Just use existing lemmas about select, along with [Forall_perm] *)
-(* FILL IN HERE *) Admitted.
+
 
 Theorem select_smallest:
   forall x al y bl, select x al = (y,bl) ->
      Forall (fun z => y <= z) bl.
 Proof.
 intros x al; revert x; induction al; intros; simpl in *.
- (* FILL IN HERE *) admit.
+inv H. auto.
 bdestruct (x <=? a).
 *
-destruct (select x al) eqn:?H.
+  destruct (select x al) eqn:?H.
+  inv H.
+  assert (select x al = (y, l)) by auto.
+  eapply IHal in H1.
+  eapply select_smallest_aux with (x:= x) in H1; eauto.
+  apply IHal in H.
+  econstructor. omega.
+  auto.
+*
+  destruct (select a al) eqn:?H.
+  inv H.
+  eapply IHal.
+eapply IHal.
+
+admit.
+*
  (* FILL IN HERE *) Admitted.
 (** [] *)
 
@@ -177,6 +201,7 @@ Lemma selection_sort_sorted_aux:
    Forall (fun z : nat => y <= z) bl ->
    sorted (y :: selsort bl (length bl)).
 Proof.
+  
  (* Hint: no induction needed.  Use lemmas selsort_perm and Forall_perm.*)
  (* FILL IN HERE *) Admitted.
 

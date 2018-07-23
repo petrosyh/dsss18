@@ -162,6 +162,14 @@ Definition hashtable_incr (s: string) (contents: hashtable_contents)
 (** **** Exercise: 2 stars (hashfun_inrange)  *)
 Lemma hashfun_inrange: forall s, 0 <= hashfun s <= Int.max_unsigned.
 Proof.
+  unfold hashfun. unfold hashfun_aux.
+  induction s.
+  - assert (0 = Int.unsigned (Int.zero)). unfold Int.unsigned. auto.
+    rewrite H. apply Int.unsigned_range_2.
+  - 
+    unfold Int.max_unsigned. unfold Int.modulus. unfold Int.wordsize.
+    unfold two_power_nat. 
+    admit. 
 (* FILL IN HERE *) Admitted.
 (** [] *)
 
@@ -239,8 +247,9 @@ Module FunTable <: COUNT_TABLE.
  Definition incr (k: key) (t: table) : table :=
     fun k' => if Nat.eqb k' k then 1 + t k' else t k'.
  Lemma gempty: forall k,  get k empty = 0.
-(* FILL IN HERE *) Admitted.
+ Proof. intros. unfold empty. auto. Qed.
  Lemma gss: forall k t,  get k (incr k t) = 1+(get k t).
+ Proof. intros. unfold incr. simpl.
 (* FILL IN HERE *) Admitted.
  Lemma gso: forall j k t,  j <> k -> get j (incr k t) = get j t.
 (* FILL IN HERE *) Admitted.
