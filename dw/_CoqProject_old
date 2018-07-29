@@ -1,0 +1,54 @@
+-Q Custom/ Custom
+-R DeepWeb/ DeepWeb
+-R /home/petrosyh/study/VST/ VST
+
+DeepWeb/Spec/Swap_SimpleSpec.v
+DeepWeb/Free/Monad/Free.v
+DeepWeb/Spec/Swap_CLikeSpec.v
+DeepWeb/Free/Monad/Effect.v
+DeepWeb/Lib/SimpleSpec.v
+DeepWeb/Spec/Descramble_Examples.v
+DeepWeb/Test/TestExternal.v
+DeepWeb/Spec/Trace_Examples.v
+
+#####################
+# Internal stuff
+
+DeepWeb/Free/Monad/OpenUnion.v
+DeepWeb/Free/Monad/Event.v
+DeepWeb/Free/Monad/Common.v
+DeepWeb/Free/Monad/Internal.v
+DeepWeb/Free/Monad/Verif.v
+DeepWeb/Free/Monad/Spec.v
+DeepWeb/Free/Monad/Semantics.v
+DeepWeb/Free/Monad/Debug.v
+
+-I DeepWeb/Test
+
+DeepWeb/Lib/Util.v
+DeepWeb/Lib/NetworkAdapter.v
+DeepWeb/Lib/NetworkInterface.v
+DeepWeb/Lib/SocketConstants.v
+DeepWeb/Lib/SocketInterface.v
+DeepWeb/Lib/Socket.v
+
+DeepWeb/Lib/SimpleSpec_Server.v
+DeepWeb/Lib/SimpleSpec_Observer.v
+DeepWeb/Lib/SimpleSpec_NetworkModel.v
+DeepWeb/Lib/SimpleSpec_Traces.v
+DeepWeb/Lib/SimpleSpec_Scramble.v
+DeepWeb/Lib/SimpleSpec_Descramble.v
+DeepWeb/Lib/SimpleSpec_Refinement.v
+DeepWeb/Lib/SimpleSpec_ServerTrace.v
+DeepWeb/Lib/SanityCheck.v
+
+DeepWeb/Spec/ServerDefs.v
+
+DeepWeb/Test/Client.v
+DeepWeb/Test/TestInternal.v
+
+Custom/Map.v
+Custom/List.v
+Custom/Monad.v
+Custom/Show.v
+Custom/String.v
